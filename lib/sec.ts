@@ -259,19 +259,24 @@ function bool(x: unknown): boolean {
 export async function fetchForm4Transactions(filings: Filing[], max = 15): Promise<{
   transactions: InsiderTransaction[];
   count: number;
+  errors: string[];
 }> {
   const f4 = filings.filter((f) => f.form === "4" || f.form === "4/A").slice(0, max);
+  const errors: string[] = [];
   const results = await mapLimit(f4, 3, async (f) => {
     try {
+      // primaryDocument is often "xslF345X05/form4.xml" (the rendered view); the raw XML lives
+      // one level up, directly in the accession folder.
       const rawDoc = f.primaryDocument.replace(/^xsl[^/]+\//i, "");
-      const url = f.url.slice(0, f.url.lastIndexOf("/") + 1) + rawDoc;
+      const url = f.url.slice(0, f.url.length - f.primaryDocument.length) + rawDoc;
       const parsed = xml.parse(await secText(url));
       return parseForm4(parsed, f, f.url);
-    } catch {
+    } catch (e) {
+      errors.push((e as Error).message);
       return [] as InsiderTransaction[];
     }
   });
-  return { transactions: results.flat(), count: f4.length };
+  return { transactions: results.flat(), count: f4.length, errors };
 }
 
 function parseForm4(doc: Record<string, unknown>, f: Filing, humanUrl: string): InsiderTransaction[] {

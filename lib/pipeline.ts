@@ -52,10 +52,11 @@ export async function analyze(input: AnalyzeInput): Promise<Report> {
     fetchForm4Transactions(filings.filter((f) => Date.parse(f.acceptedAt) >= asOfClamped.getTime() - 95 * 86400_000), 15).catch(
       (e) => {
         warnings.push(`Form 4 fetch failed: ${e.message}`);
-        return { transactions: [], count: 0 };
+        return { transactions: [], count: 0, errors: [] as string[] };
       },
     ),
   ]);
+  if (form4.errors.length) warnings.push(`Form 4 parse failed for ${form4.errors.length}/${form4.count} filings: ${form4.errors[0]}`);
   if (!market.available) warnings.push(`Market data unavailable: ${market.error ?? "unknown"}`);
   if (!process.env.SEC_USER_AGENT) warnings.push("SEC_USER_AGENT is not set — SEC asks automated clients to declare a contact.");
 

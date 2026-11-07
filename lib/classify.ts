@@ -51,8 +51,10 @@ function ruleCategory(e: Evidence, m: MarketContext): { cat: CatalystCategory; n
   return { cat: "KNOWN_EVENT_MATERIALIZATION", novelty: 35, certainty: 85, nm: "MATERIALIZATION" };
 }
 
+// Periodic reports and shelf filings are context, not catalysts.
 const LOW_SIGNAL_8K = (e: Evidence) =>
-  (e.form ?? "").startsWith("8-K") && (e.items ?? []).every((i) => ["5.07", "9.01", "5.03", "3.02", "7.01"].includes(i));
+  ((e.form ?? "").startsWith("8-K") && (e.items ?? []).every((i) => ["5.07", "9.01", "5.03", "3.02", "7.01"].includes(i))) ||
+  ["10-Q", "10-K", "S-3", "424B5"].includes(e.form ?? "");
 
 export function noNewsClassification(m: MarketContext, insider: InsiderAnalysis, engine: "rules" | "claude" = "rules"): Classification {
   const sectorMove = m.sector_move_pct ?? 0;
