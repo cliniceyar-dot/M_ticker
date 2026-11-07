@@ -49,6 +49,35 @@ POST /api/analyze  {"ticker":"ABCD","as_of":null,"breakout":{"pattern":"PEAK","b
 3. There is no licensed news feed yet. Official sources (SEC, FDA) are the source of truth.
 4. Feedback and the watchlist live in browser storage. Add PostgreSQL before you need multi-user data.
 
+## Bullish vs. Bearish research (`/research`)
+
+The research page takes a ticker and builds a two-sided, evidence-backed report. Bearish arguments appear on the left and bullish ones on the right; on mobile they become two tabs, with Bullish selected first. It runs on its own or from a breakout report ("Bull vs. Bear research →"), and it never changes the breakout score.
+
+| Skill | Module | Sources and window |
+|---|---|---|
+| 1. Company strategy | `lib/research/strategy.ts` | 8-K earnings and Reg FD releases (Exhibit 99) across 36 months. Claude compares each management commitment with later results. |
+| 2. SEC filings | `lib/research/sec-financials.ts` | XBRL company facts covering revenue, quarterly YoY change and acceleration, margins, opex vs. revenue, net income, free cash flow, dilution, and debt vs. cash. Every figure links to its filing and period. |
+| 3. News and social | `lib/research/news.ts` | Claude web search restricted to news sites, YouTube, X and Instagram, last 3 months. Only pages the search actually returned can be cited. Each provider's coverage is reported. |
+| 4–5. Bull and bear analysts | `lib/research/analysts.ts` | Two independent Claude analysts read the same evidence. The bearish one is told to test the bull thesis rather than invent balance. |
+| 6. Validator | `lib/research/validator.ts` | Deterministic code. It drops uncited claims, counts independent events rather than articles, scores strength from verification, corroboration and counter-evidence, merges duplicates, flags stale evidence, detects conflicts, and ranks arguments. |
+
+**API**
+
+```
+POST /api/v1/intelligence/bull-bear/analyses       {"ticker":"NVDA","as_of":"…","options":{…}}  → 202 {analysis_id,status}
+GET  /api/v1/intelligence/bull-bear/analyses/{id}  → full report (sources, evidence, arguments, conflicts, coverage, data_quality, audit)
+GET  /api/v1/intelligence/bull-bear/analyses?ticker=NVDA → saved history
+```
+
+Analyses run in the background via `after()` and are stored in a private Vercel Blob store (`BLOB_READ_WRITE_TOKEN`), or in memory locally. Each report records the model, prompt version and pipeline version, plus publication and retrieval times for every source. Reports export as text, JSON or PDF (via print).
+
+**Limitations:**
+- Without `ANTHROPIC_API_KEY`, arguments come only from SEC financials, and the news and social channels show as unavailable.
+- Earnings-call transcripts are licensed, so they are listed as missing.
+- X and Instagram appear only as far as web search indexes them.
+- Risk-factor text diffs are not automated yet.
+- No probability is derived from the balance of arguments.
+
 ## CI/CD
 
 ```

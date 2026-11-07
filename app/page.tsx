@@ -245,6 +245,7 @@ function ReportView({ t, r, tab, setTab, inWatch, toggleWatch, giveFeedback, thr
         <span className={`px mono ${cls(m.stock_move_pct)}`}>{sgn(m.stock_move_pct)}</span>
         <span className="co" dir="ltr">{r.entity.company_name} · {r.entity.exchange ?? "—"} · {r.entity.sector ?? r.entity.industry ?? "—"}</span>
         <span style={{ flex: 1 }} />
+        <a className="btn ghost small" href={`/research?t=${r.ticker}`}>{t.bullBear}</a>
         <button className="btn ghost small" onClick={toggleWatch}>{inWatch ? t.inWatch : t.addWatch}</button>
       </div>
 
