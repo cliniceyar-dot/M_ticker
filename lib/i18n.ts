@@ -31,6 +31,7 @@ const en = {
     "Enter a US-listed ticker. The engine resolves the SEC entity, collects filings, FDA actions and Form 4s up to the as-of time, classifies the primary catalyst, compares the move against its sector and returns P(no averaging) with a separate confidence score.",
   foot:
     "Decision support only — not investment advice and not an execution system. Probabilities come from a seed scoring model that is not yet calibrated on a point-in-time backtest; treat them as ranked scores until a calibration set (300–500 events) is in place. Sources: SEC EDGAR (official), openFDA Drugs@FDA (official), Yahoo Finance chart data (development only — replace with a licensed feed for production).",
+  bullBear: "Bull vs. Bear research →",
   inWatch: "★ In watchlist",
   addWatch: "☆ Add to watchlist",
   eventDetected: "● Event detected",
@@ -171,6 +172,7 @@ const he: Dict = {
     "הזן טיקר הנסחר בארה״ב. המנוע מזהה את הישות ב-SEC, אוסף דיווחים, החלטות FDA ודיווחי Form 4 עד לנקודת הזמן שנבחרה, מסווג את הקטליזטור המרכזי, משווה את התנועה לסקטור ומחזיר P(ללא נר מיצוע) יחד עם ציון ביטחון נפרד.",
   foot:
     "כלי תומך החלטה בלבד — אינו ייעוץ השקעות ואינו מערכת ביצוע. ההסתברויות מגיעות ממודל ציון ראשוני שטרם כויל על backtest נקודתי-בזמן; יש להתייחס אליהן כדירוג עד שיהיה סט כיול (300–500 אירועים). מקורות: SEC EDGAR (רשמי), openFDA Drugs@FDA (רשמי), נתוני גרף Yahoo Finance (לפיתוח בלבד — יש להחליף בספק מורשה לפרודקשן).",
+  bullBear: "מחקר שורי מול דובי ←",
   inWatch: "★ ברשימת המעקב",
   addWatch: "☆ הוסף לרשימת מעקב",
   eventDetected: "● זוהה אירוע",

@@ -214,7 +214,7 @@ interface FilingIndex {
   directory: { item: { name: string; type?: string; size?: string | number }[] };
 }
 
-async function fetchFilingExcerpt(f: Filing): Promise<string> {
+export async function fetchFilingExcerpt(f: Filing): Promise<string> {
   const base = f.url.slice(0, f.url.lastIndexOf("/") + 1);
   const parts: string[] = [];
   const primary = htmlToText(await secText(f.url));
