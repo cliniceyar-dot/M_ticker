@@ -49,6 +49,30 @@ POST /api/analyze  {"ticker":"ABCD","as_of":null,"breakout":{"pattern":"PEAK","b
 3. There is no licensed news feed yet. Official sources (SEC, FDA) are the source of truth.
 4. Feedback and the watchlist live in browser storage. Add PostgreSQL before you need multi-user data.
 
+## CI/CD
+
+```
+push / PR ──► GitHub Actions CI ─────────── typecheck · unit tests · next build
+          └─► Vercel (git integration) ──── npm test && next build ──► deploy
+                                                  main → production, other branches/PRs → preview
+                                                        │ deployment_status: success
+                                                        ▼
+                                  GitHub Actions smoke test (scripts/smoke.sh against the live URL)
+```
+
+- **CI** (`.github/workflows/ci.yml`) runs on every push and pull request: `npm run typecheck`, `vitest`, `next build`. JUnit results are uploaded as an artifact.
+- **CD** is handled by Vercel's GitHub integration on the `my-ticker` project. A push to `main` deploys to production, and any other branch or PR gets a preview URL. `vercel.json` runs `npm test` before the build, so a failing test blocks the deploy.
+- **Smoke test** (`.github/workflows/smoke.yml`) runs after each successful Vercel deployment. It loads the page and calls `/api/analyze?ticker=AAPL` against the real deployment. While Vercel Authentication protects the site, add a `VERCEL_AUTOMATION_BYPASS_SECRET` repo secret (from Vercel → Settings → Deployment Protection → Protection Bypass for Automation). Without it the smoke test skips with a warning.
+
+## Tests
+
+```bash
+npm test          # vitest, ~0.5s, no network
+npm run ci        # typecheck + tests + build, same as CI
+```
+
+The unit tests cover EDGAR timestamp handling, point-in-time filing filters, Form 4 XML parsing (from a fixture), insider scoring, the rules classifier, the raw score, seed probability and confidence, the EV threshold, sector mapping, HTML extraction, i18n key parity, and the API route (with the pipeline mocked).
+
 ## Develop
 
 ```bash

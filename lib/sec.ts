@@ -269,8 +269,7 @@ export async function fetchForm4Transactions(filings: Filing[], max = 15): Promi
       // one level up, directly in the accession folder.
       const rawDoc = f.primaryDocument.replace(/^xsl[^/]+\//i, "");
       const url = f.url.slice(0, f.url.length - f.primaryDocument.length) + rawDoc;
-      const parsed = xml.parse(await secText(url));
-      return parseForm4(parsed, f, f.url);
+      return parseForm4Xml(await secText(url), f);
     } catch (e) {
       errors.push((e as Error).message);
       return [] as InsiderTransaction[];
@@ -279,8 +278,14 @@ export async function fetchForm4Transactions(filings: Filing[], max = 15): Promi
   return { transactions: results.flat(), count: f4.length, errors };
 }
 
+/** Parse a raw Form 4 XML document into normalized non-derivative transactions. */
+export function parseForm4Xml(xmlText: string, f: Filing): InsiderTransaction[] {
+  return parseForm4(xml.parse(xmlText) as Record<string, unknown>, f, f.url);
+}
+
 function parseForm4(doc: Record<string, unknown>, f: Filing, humanUrl: string): InsiderTransaction[] {
-  const od = (doc.ownershipDocument ?? {}) as Record<string, unknown>;
+  if (!doc.ownershipDocument) throw new Error("no ownershipDocument in Form 4 XML");
+  const od = doc.ownershipDocument as Record<string, unknown>;
   const owners = arr(od.reportingOwner as Record<string, unknown> | Record<string, unknown>[]);
   const o = owners[0] ?? {};
   const id = (o.reportingOwnerId ?? {}) as Record<string, unknown>;

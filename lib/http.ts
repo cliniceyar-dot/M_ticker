@@ -66,6 +66,7 @@ export function htmlToText(html: string): string {
     .replace(/&#8220;|&#8221;|&ldquo;|&rdquo;/gi, '"')
     .replace(/&#\d+;/g, " ")
     .replace(/[ \t]+/g, " ")
+    .replace(/ *\n */g, "\n")
     .replace(/\n\s*\n+/g, "\n")
     .trim();
 }
