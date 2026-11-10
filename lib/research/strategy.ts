@@ -2,7 +2,7 @@ import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
 import { fetchFilingExcerpt, type Filing } from "../sec";
 import { mapLimit } from "../http";
-import { claude, GROUNDING_RULES, RESEARCH_MODEL } from "./claude";
+import { claude, GROUNDING_RULES, languageRule, RESEARCH_MODEL, track } from "./claude";
 import type { ResearchEvidence, ResearchSource } from "./types";
 
 /**
@@ -96,8 +96,9 @@ export async function researchStrategy(args: {
   financialEvidence: ResearchEvidence[];
   retrievedAt: string;
   useClaude: boolean;
+  language?: "en" | "he";
 }): Promise<StrategyResult> {
-  const { releases, company, ticker, asOf, financialEvidence, retrievedAt, useClaude } = args;
+  const { releases, company, ticker, asOf, financialEvidence, retrievedAt, useClaude, language } = args;
   if (!releases.length) return { evidence: [], sources: [], status: "unavailable", note: "No official 8-K releases found in the window." };
   const sources = releaseSources(releases, company, retrievedAt);
   if (!useClaude) {
@@ -130,7 +131,8 @@ ${GROUNDING_RULES}
 - A management statement is verification "management_statement"; only reported results are "confirmed_fact".
 - Call out missed commitments, changes in management's position, unexpected improvements and emerging risks.
 - event_key: a short stable slug for the underlying topic (e.g. "fy26-revenue-guidance").
-- Return at most 12 findings, most material first.`,
+- Return at most 12 findings, most material first.
+- ${languageRule(language)}`,
     messages: [
       {
         role: "user",
@@ -138,6 +140,7 @@ ${GROUNDING_RULES}
       },
     ],
   });
+  track(res);
   if (res.stop_reason === "refusal" || !res.parsed_output) return { evidence: [], sources, status: "error", note: "Strategy agent returned no usable output." };
 
   const valid = new Set([...sources.map((s) => s.id), ...financialEvidence.map((e) => e.id)]);

@@ -166,3 +166,11 @@ a.btn { display: inline-block; text-decoration: none; }
   details > ul { display: block; }
   .panel { break-inside: avoid; }
 }
+
+/* Bull/Bear analysis tab */
+.bb-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.bb-progress { margin-top: 12px; }
+.bb-prog { list-style: none; padding: 0; margin: 6px 0 0; font-size: 13px; display: grid; gap: 3px; }
+.bb-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 14px; }
+.bb-filters input[type="date"] { margin-inline-start: 4px; }
+.bb-disclaimer { margin-top: 18px; padding: 10px 12px; border: 1px dashed var(--line, #444); border-radius: 8px; font-size: 12px; color: var(--muted, #999); }

@@ -1,5 +1,11 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "buildCommand": "npm test && npm run build"
+  "buildCommand": "npm test && npm run build",
+  "crons": [
+    {
+      "path": "/api/cron/bull-bear-refresh",
+      "schedule": "23 3 * * *"
+    }
+  ]
 }

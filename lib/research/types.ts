@@ -71,6 +71,8 @@ export interface ChannelCoverage {
   status: "ok" | "partial" | "unavailable" | "skipped" | "error";
   window: { from: string; to: string };
   items: number;
+  /** Raw items examined for this channel (filings, search results, releases). */
+  scanned?: number;
   note?: string;
 }
 
@@ -83,6 +85,11 @@ export interface AnalysisOptions {
   include_youtube: boolean;
   include_x: boolean;
   include_instagram: boolean;
+  /** Output language for generated text (default English). */
+  language?: "en" | "he";
+  /** Per-channel lookbacks in days; override recent_media_months when set. */
+  news_days?: number;
+  social_days?: number;
 }
 
 export const DEFAULT_OPTIONS: AnalysisOptions = {
@@ -122,6 +129,12 @@ export interface BullBearAnalysis {
     missing_sources: string[];
     warnings: string[];
   };
+  /** Neutral 2–3 sentence bottom line (no verdict). */
+  summary?: string;
+  sources_scanned?: number;
+  history_months?: number;
+  recent_material_event_at?: string | null;
+  cost_usd?: number;
   audit: {
     engine: "claude" | "rules";
     model: string | null;
