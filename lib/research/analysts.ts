@@ -1,6 +1,6 @@
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
-import { claude, GROUNDING_RULES, RESEARCH_MODEL } from "./claude";
+import { claude, GROUNDING_RULES, languageRule, RESEARCH_MODEL, track } from "./claude";
 import type { Horizon, Level, ResearchEvidence } from "./types";
 
 /**
@@ -60,7 +60,10 @@ export function evidenceDigest(evidence: ResearchEvidence[]): string {
     .join("\n");
 }
 
-export async function runAnalyst(side: "bullish" | "bearish", args: { company: string; ticker: string; asOf: Date; evidence: ResearchEvidence[] }): Promise<AnalystOutput> {
+export async function runAnalyst(
+  side: "bullish" | "bearish",
+  args: { company: string; ticker: string; asOf: Date; evidence: ResearchEvidence[]; language?: "en" | "he" },
+): Promise<AnalystOutput> {
   const res = await claude().beta.messages.parse({
     model: RESEARCH_MODEL,
     max_tokens: 16000,
@@ -70,15 +73,56 @@ export async function runAnalyst(side: "bullish" | "bearish", args: { company: s
     system: `${ROLE[side]}
 ${GROUNDING_RULES}
 Output rules:
-- Up to 7 arguments, most material first. Each: a short descriptive title; a 2–4 sentence explanation of the argument and its financial significance; an evidence_summary with the key figures and dates; evidence_ids (required, from the input); counter_evidence_ids for credible evidence that challenges it.
+- Up to 7 arguments, most material first. Each: a title of one sentence and at most 15 words; a 2–4 sentence plain-language explanation of the argument and its financial significance; an evidence_summary with the key figures and dates; evidence_ids (required, from the input); counter_evidence_ids for credible evidence that challenges it.
 - Several evidence records with the same "event" value are one underlying event, not independent confirmation.
 - Prefer official filings and company documents for facts; use news and social items for context and narrative, labelled as such.
 - Report material disagreements between sources in conflicts.
-- Set insufficient=true when the evidence does not support any credible ${side} argument.`,
+- Use neutral, factual tone: no loaded words such as "brilliant", "collapsing", "disaster".
+- Set insufficient=true when the evidence does not support any credible ${side} argument.
+- ${languageRule(args.language)}`,
     messages: [{ role: "user", content: `Company: ${args.company} (${args.ticker}). Decision time: ${args.asOf.toISOString()}.\n\n${evidenceDigest(args.evidence)}` }],
   });
+  track(res);
   if (res.stop_reason === "refusal" || !res.parsed_output) throw new Error(`${side} analyst returned no usable output`);
   return res.parsed_output;
+}
+
+const Summary = z.object({ summary: z.string() });
+
+/** Neutral 2–3 sentence bottom line describing the core disagreement — never a verdict. */
+export async function writeSummary(args: {
+  company: string;
+  ticker: string;
+  bull: { title: string; explanation: string }[];
+  bear: { title: string; explanation: string }[];
+  language?: "en" | "he";
+}): Promise<string> {
+  const list = (xs: { title: string; explanation: string }[]) => xs.map((x, i) => `${i + 1}. ${x.title} — ${x.explanation}`).join("\n") || "(none)";
+  const res = await claude().beta.messages.parse({
+    model: RESEARCH_MODEL,
+    max_tokens: 4000,
+    betas: ["server-side-fallback-2026-07-01"],
+    fallbacks: "default",
+    output_config: { effort: "low", format: betaZodOutputFormat(Summary) },
+    system: `You write the neutral "bottom line" of a two-sided stock research report.
+In 2–3 sentences, state what the bull and bear cases fundamentally disagree about. Use only the arguments given.
+Never give a verdict, a recommendation, a price target, a probability or a score, and do not say which side is stronger. Neutral tone.
+${languageRule(args.language)}`,
+    messages: [{ role: "user", content: `${args.company} (${args.ticker})\n\nBull arguments:\n${list(args.bull)}\n\nBear arguments:\n${list(args.bear)}` }],
+  });
+  track(res);
+  if (res.stop_reason === "refusal" || !res.parsed_output) throw new Error("summary writer returned no usable output");
+  return res.parsed_output.summary.trim();
+}
+
+/** Deterministic bottom line used without the Claude layer. */
+export function fallbackSummary(bull: { title: string }[], bear: { title: string }[], language?: "en" | "he"): string {
+  if (language === "he") {
+    if (!bull.length && !bear.length) return "לא נמצאו מספיק טיעונים מבוססי מקורות לאף אחד מהצדדים.";
+    return `נמצאו ${bull.length} טיעונים בעד ו-${bear.length} טיעונים נגד. ${bull[0] ? `הטיעון המרכזי בעד: ${bull[0].title}.` : ""} ${bear[0] ? `הטיעון המרכזי נגד: ${bear[0].title}.` : ""}`.trim();
+  }
+  if (!bull.length && !bear.length) return "Not enough source-backed arguments were found for either side.";
+  return `${bull.length} bullish and ${bear.length} bearish arguments were found. ${bull[0] ? `The main bull point: ${bull[0].title}.` : ""} ${bear[0] ? `The main bear point: ${bear[0].title}.` : ""}`.trim();
 }
 
 /** Deterministic analysts used when the Claude layer is unavailable: one argument per directional SEC fact. */

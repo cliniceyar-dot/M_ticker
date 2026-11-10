@@ -4,8 +4,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { BreakoutPattern, Report } from "@/lib/types";
 import { CATEGORY_LABEL } from "@/lib/taxonomy";
 import { DICTS, type Dict, type Lang } from "@/lib/i18n";
+import { BULLBEAR_DICTS } from "@/lib/i18n-bullbear";
+import BullBearPanel from "./components/BullBearPanel";
 
-type Tab = "evidence" | "insiders" | "market" | "score" | "history" | "audit";
+type Tab = "evidence" | "bullbear" | "insiders" | "market" | "score" | "history" | "audit";
 interface WatchItem { ticker: string; p: number | null; conf: number | null; at: string; alerted?: boolean }
 interface Feedback { ticker: string; as_of: string; category: string; p: number | null; label: string; at: string }
 
@@ -204,7 +206,7 @@ export default function Home() {
         {!r && !err && !loading && <div className="empty"><h2>{t.emptyTitle}</h2><div>{t.emptyBody}</div></div>}
         {loading && !r && <div className="empty"><span className="loader" /> {t.loadingMsg}</div>}
 
-        {r && <ReportView t={t} r={r} tab={tab} setTab={setTab} inWatch={inWatch} toggleWatch={toggleWatch} giveFeedback={giveFeedback} threshold={threshold} />}
+        {r && <ReportView t={t} lang={lang} r={r} tab={tab} setTab={setTab} inWatch={inWatch} toggleWatch={toggleWatch} giveFeedback={giveFeedback} threshold={threshold} />}
 
         <div className="foot">{t.foot}</div>
       </main>
@@ -218,8 +220,8 @@ function stateClass(r: Report) {
   return "wait";
 }
 
-function ReportView({ t, r, tab, setTab, inWatch, toggleWatch, giveFeedback, threshold }: {
-  t: Dict; r: Report; tab: Tab; setTab: (x: Tab) => void; inWatch: boolean; toggleWatch: () => void; giveFeedback: (l: string) => void; threshold: number;
+function ReportView({ t, lang, r, tab, setTab, inWatch, toggleWatch, giveFeedback, threshold }: {
+  t: Dict; lang: Lang; r: Report; tab: Tab; setTab: (x: Tab) => void; inWatch: boolean; toggleWatch: () => void; giveFeedback: (l: string) => void; threshold: number;
 }) {
   const m = r.market_context;
   const pc = r.primary_catalyst;
@@ -230,6 +232,7 @@ function ReportView({ t, r, tab, setTab, inWatch, toggleWatch, giveFeedback, thr
   const confLevel = r.confidence >= 75 ? "HIGH" : r.confidence >= 50 ? "MEDIUM" : "LOW";
   const tabLabel: Record<Tab, string> = {
     evidence: `${t.tabEvidence} (${r.evidence.length})`,
+    bullbear: BULLBEAR_DICTS[lang].tab,
     insiders: `${t.tabInsiders} (${r.insider.transactions.length})`,
     market: t.tabMarket,
     score: t.tabScore,
@@ -316,12 +319,13 @@ function ReportView({ t, r, tab, setTab, inWatch, toggleWatch, giveFeedback, thr
       {r.warnings.length > 0 && <div className="warns" dir="ltr">{r.warnings.map((w, i) => <div key={i}>⚠ {w}</div>)}</div>}
 
       <div className="tabs">
-        {(["evidence", "insiders", "market", "score", "history", "audit"] as Tab[]).map((x) => (
+        {(["evidence", "bullbear", "insiders", "market", "score", "history", "audit"] as Tab[]).map((x) => (
           <button key={x} className={tab === x ? "on" : ""} onClick={() => setTab(x)}>{tabLabel[x]}</button>
         ))}
       </div>
 
       {tab === "evidence" && <EvidenceTab t={t} r={r} />}
+      {tab === "bullbear" && <BullBearPanel ticker={r.ticker} lang={lang} />}
       {tab === "insiders" && <InsiderTab t={t} r={r} />}
       {tab === "market" && <MarketTab t={t} r={r} />}
       {tab === "score" && <ScoreTab t={t} r={r} />}

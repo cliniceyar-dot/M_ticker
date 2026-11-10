@@ -40,6 +40,8 @@ export interface Submissions {
       primaryDocument: string[];
       primaryDocDescription: string[];
     };
+    /** Older filing pages; present when history extends beyond `recent`. */
+    files?: { name: string; filingFrom: string; filingTo: string }[];
   };
 }
 

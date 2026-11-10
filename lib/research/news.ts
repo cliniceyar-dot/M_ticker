@@ -1,5 +1,5 @@
 import type Anthropic from "@anthropic-ai/sdk";
-import { claude, GROUNDING_RULES, RESEARCH_MODEL } from "./claude";
+import { claude, GROUNDING_RULES, RESEARCH_MODEL, track } from "./claude";
 import type { Channel, ChannelCoverage, Direction, ResearchEvidence, ResearchSource, SourceKind, Verification } from "./types";
 
 /**
@@ -123,10 +123,13 @@ export async function researchChannel(args: {
   aliases: string[];
   asOf: Date;
   months: number;
+  /** Lookback in days; overrides `months` when set. */
+  days?: number;
   historical: boolean;
   retrievedAt: string;
 }): Promise<ChannelResult> {
-  const { channel, company, ticker, aliases, asOf, months, historical, retrievedAt } = args;
+  const { channel, company, ticker, aliases, asOf, historical, retrievedAt } = args;
+  const months = args.days ? args.days / 30.44 : args.months;
   const from = new Date(asOf.getTime() - months * 30.44 * 86400e3).toISOString().slice(0, 10);
   const to = asOf.toISOString().slice(0, 10);
   const coverage: ChannelCoverage = { channel, requested: true, status: "ok", window: { from, to }, items: 0 };
@@ -143,6 +146,7 @@ export async function researchChannel(args: {
       tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 6, allowed_domains: CHANNEL_DOMAINS[channel] }],
       messages,
     });
+    track(res);
     if (res.stop_reason === "refusal") {
       return { evidence: [], sources: [], coverage: { ...coverage, status: "error", note: "Research request declined." } };
     }
@@ -190,6 +194,7 @@ export async function researchChannel(args: {
   }
 
   coverage.items = evidence.length;
+  coverage.scanned = results.size;
   const notes: string[] = [];
   if (searchErrors.length) notes.push(`search errors: ${[...new Set(searchErrors)].join(", ")}`);
   if (dropped.old + dropped.future + dropped.undated) notes.push(`excluded ${dropped.old} outside window, ${dropped.future} published after as_of, ${dropped.undated} undated`);

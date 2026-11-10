@@ -79,6 +79,27 @@ Analyses run in the background via `after()` and are stored in a private Vercel 
 - Risk-factor text diffs are not automated yet.
 - No probability is derived from the balance of arguments.
 
+## Bull/Bear Analysis tab (stock page)
+
+Open any ticker's report and pick the **Bull/Bear Analysis** tab. The bull case is on the right and the bear case on the left. Each side shows 3–7 arguments, each with source-type tags, a strength rating, SEC-verified/conflict/social-opinion badges, and expandable sources (date and excerpt). Below the arguments are a bottom-line summary and a fixed disclaimer. The UI is in Hebrew by default; pass `lang=en` for English.
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /api/v1/stocks/{ticker}/bull-bear?lang=&source_types=official,news,social&from=&to=&version=` | `200` with the analysis, or `202 {job_id}` while one is being generated |
+| `POST /api/v1/stocks/{ticker}/bull-bear/refresh` | Manual refresh; `429` with `Retry-After` if called more than once per hour per client (`x-client-id` header or IP) |
+| `GET /api/v1/stocks/{ticker}/bull-bear/versions` | Version history |
+| `GET /api/v1/jobs/{job_id}` | Job status and per-source progress |
+| `GET /api/cron/bull-bear-refresh` | Daily Vercel Cron (03:23 UTC); set `CRON_SECRET` to require `Bearer` auth |
+
+- **Strength score:** sum over sources of type weight × recency. Weights are official 3, news 2, social 1. Recency is 1.0 up to 3 months, 0.7 up to 1 year, 0.4 beyond. A score of 6 or more is Strong and 3 or more is Medium. Arguments backed only by social sources are capped at Weak.
+- **Freshness:** an analysis is reused for 24h, or until a new 10-K, 10-Q or 8-K appears. Filters are applied server-side to the stored version, without a new model run.
+- **Notices:** `FEW_*_ARGUMENTS`, `RECENT_MATERIAL_EVENT`, `PARTIAL_HISTORY`, `MISSING_SOURCES`, `STALE_ANALYSIS`.
+- **Configuration:** every lookback and threshold is an env var (`BB_*`, see `lib/stocks/config.ts`).
+- **Deviations from the spec:**
+  - There are no user accounts, so "per user" rate limiting uses a client id or IP.
+  - Licensed news and transcripts are replaced by Claude web search.
+  - New filings are detected lazily on read and by the daily cron, not by an EDGAR push.
+
 ## CI/CD
 
 ```
