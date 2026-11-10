@@ -41,6 +41,7 @@ POST /api/analyze  {"ticker":"ABCD","as_of":null,"breakout":{"pattern":"PEAK","b
 | `SEC_USER_AGENT` | Required by SEC fair-access policy, e.g. `"M-Ticker Research ops@yourco.com"` |
 | `ANTHROPIC_API_KEY` | Enables the Claude classifier. Without it, the rules engine is used |
 | `CLAUDE_MODEL` | Optional override (default `claude-opus-5-5`) |
+| `BLOB_READ_WRITE_TOKEN` | Private Vercel Blob store for saved Bull vs. Bear reports (set automatically when the store is connected; in-memory fallback otherwise) |
 
 ## Known limits (read before trading on it)
 
